@@ -42,7 +42,7 @@ class CamProcessor:
 
         if settings.MODEL_ENABLE_GPU:
             network_settings['gpu_name'] = processor_name
-
+            logger.info('USANDO GPU')
         try:
             self.net = Network(**network_settings)
         except Exception as error:

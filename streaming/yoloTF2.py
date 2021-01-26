@@ -11,6 +11,7 @@ physical_devices = tf.config.list_physical_devices('GPU')
 for device in physical_devices:
     try:
         tf.config.experimental.set_memory_growth(device, True)
+        logger.info('USING GPU')
     except:
         logger.error(f'Invalid device or cannot modify virtual devices once initialized {device}')
 
