@@ -175,6 +175,71 @@ class RTSPCamera(Camera):
 
             raise UnavailableFrame()
 
+class RTMPCamera(Camera):
+    FRAME_WAIT_TIMEOUT = 60
+
+    def __init__(self, url=None, **kwargs):
+        self.frame_queue = queue.Queue(1)
+        self.last_update = None
+
+        if not url:
+            message = 'No posee ninguna credencial asociada'
+            raise RefusedConnection(message)
+
+        self.url = url
+        self.connect()
+
+    def connect(self):
+        for connection_try in range(5):
+            self.camera = cv2.VideoCapture(self.url)
+            if self.camera.isOpened():
+                break
+            else:
+                logger.warning(f'{connection_try} intentos de conexion a {self.url}')
+                time.sleep(2)
+
+        if not self.camera.isOpened():
+            message = 'No se puede acceder a ' + self.url
+            raise RefusedConnection(message)
+
+        self.last_update = dt.datetime.now()
+        thread = threading.Thread(target=self.cam_buffer)
+        thread.daemon = True
+        thread.start()
+
+    def cam_buffer(self):
+        while True:
+            successful_read, frame = self.camera.read()
+            if not successful_read:
+                break
+
+            if self.frame_queue.full():
+                try:
+                    self.frame_queue.get_nowait()
+                except queue.Empty:
+                    pass
+
+            self.frame_queue.put_nowait(frame)
+            self.last_update = dt.datetime.now()
+
+        message = 'Se ha cortado la comunicación'
+        raise ClosedConnection(message)
+
+    def release(self):
+        if self.camera:
+            self.camera.release()
+
+    def get_frame(self):
+        try:
+            return self.frame_queue.get_nowait()
+        except queue.Empty:
+            timeout = self.last_update + dt.timedelta(seconds=self.FRAME_WAIT_TIMEOUT)
+            if dt.datetime.now() > timeout:
+                message = 'Se ha superado el tiempo de espera por el fotograma.'
+                raise RefusedConnection(message)
+
+            raise UnavailableFrame()
+
 
 class HTTPCamera(RTSPCamera):
     pass

@@ -26,6 +26,7 @@ class Channel(models.Model):
     HTTP_INTERFACE = 'HTTPCamera'
     HTTPS_INTERFACE = 'HTTPSCamera'
     REDIS_INTERFACE = 'RedisCamera'
+    RTMP_INTERFACE = 'RTMPCamera'
 
     STATE_CHOICES = [
         (STATE_ACTIVE, STATE_ACTIVE),
@@ -35,17 +36,19 @@ class Channel(models.Model):
     ]
 
     CAMERA_INTERFACE_CHOICES = [
-        # (LOCAL_FILE_INTERFACE, LOCAL_FILE_INTERFACE),
+        #(LOCAL_FILE_INTERFACE, LOCAL_FILE_INTERFACE),
         (RTSP_INTERFACE, RTSP_INTERFACE),
         (HTTP_INTERFACE, HTTP_INTERFACE),
         (HTTPS_INTERFACE, HTTPS_INTERFACE),
+        (RTMP_INTERFACE, RTMP_INTERFACE),
         # (REDIS_INTERFACE, REDIS_INTERFACE),
     ]
 
     URL_CAMERA_PROTOCOLS = {
         RTSP_INTERFACE: 'rtsp',
         HTTP_INTERFACE: 'http',
-        HTTPS_INTERFACE: 'https'
+        HTTPS_INTERFACE: 'https',
+        RTMP_INTERFACE: 'rtmp'
     }
 
     name = models.CharField(max_length=256,
