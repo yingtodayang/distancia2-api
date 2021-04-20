@@ -41,6 +41,7 @@ class CamProcessor:
         }
 
         if settings.MODEL_ENABLE_GPU:
+
             network_settings['gpu_name'] = processor_name
             logger.info('USANDO GPU')
         try:
@@ -48,30 +49,37 @@ class CamProcessor:
         except Exception as error:
             logger.error(error)
 
-    def distance_measure(self, boxes):
-        get_lower_center = lambda box: (box[ORI_X] + box[WIDTH] // 2, box[ORI_Y] + box[HEIGHT])
+    def distance_measure(self, boxes, image):
+        get_lower_center = lambda box: ((box[ORI_X] + (box[WIDTH] / 4)), box[ORI_Y]+(box[HEIGHT]/2))
         f = lambda x: np.arctan(x) / (np.pi/2)
-
+        height, width, _ = image.shape
+        if(len(boxes) > 0):
+            boxes = boxes * np.array([width, height, width, height, 1, 1])
         results = []
-        for (index_a, box_a), (index_b, box_b) in itertools.combinations(enumerate(boxes), 2):
+        
+        for (index_a,box_a), (index_b, box_b) in itertools.combinations(enumerate(boxes), 2):
             base_box_a = get_lower_center(box_a)
             base_box_b = get_lower_center(box_b)
 
             euclidean_distance = distance.euclidean(base_box_a, base_box_b)
-            height_box_a = self.people_height / box_a[HEIGHT]
-            height_box_b = self.people_height / box_b[HEIGHT]
+            #print(euclidean_distance)
+            height_box_a = (self.people_height / box_a[HEIGHT])
+            height_box_b = (self.people_height / box_b[HEIGHT]) 
+            # height_box_a = box_a[HEIGHT]
+            # height_box_b = box_b[HEIGHT]
 
             l1 = f(box_a[HEIGHT] / box_b[HEIGHT])
-            l2 = 1 - l1
+            l2 = (1 - l1)
 
             D = l1 * height_box_a * euclidean_distance + l2 * height_box_b * euclidean_distance
 
             a = [index_a, index_b,
-                 base_box_a, base_box_b, 
+                 base_box_a, base_box_b,
                  round(D, 2)]
             results.append(a)
 
-        return np.array(results)
+        return np.array(results,dtype=object)
+        
 
     def get_min_distances(self, distances):
         min_distances = []
@@ -83,15 +91,26 @@ class CamProcessor:
         return np.array(min_distances)
 
     def draw_over_frame(self, image, boxes, distance_lines):
-        for box in boxes:
-            edge_0 = (box[ORI_X], box[ORI_Y])
-            edge_1 = (box[ORI_X] + box[WIDTH], box[ORI_Y] + box[HEIGHT])
-            cv2.rectangle(image, edge_0, edge_1, COLOR_PEOPLE_BOX, THICKNESS_LINE)
-
+        if settings.MODEL_ENABLE_GPU:
+            image = self.net.draw_image(image,boxes)
+        else:
+            for box in boxes:
+                edge_0 = (box[ORI_X], box[ORI_Y])
+                edge_1 = (box[ORI_X] + box[WIDTH], box[ORI_Y] + box[HEIGHT])
+                cv2.rectangle(image, edge_0, edge_1, COLOR_PEOPLE_BOX, THICKNESS_LINE)
+        
         for line in distance_lines:
             line_color = COLOR_CLOSE_LINE if line[4] < settings.SECURE_DISTANCE else COLOR_FAR_LINE
-            image = cv2.line(image, line[2], line[3], line_color, THICKNESS_LINE)
-
+            #print(line[2], ' ', line[3])
+            # a = tuple((np.float32(x*640/2)) for x in line[2])
+            # b = tuple((np.float32(x*640/2)) for x in line[3])
+            a = np.float32(line[2][0])
+            b = np.float32(line[2][1])
+            c = np.float32(line[3][0])
+            d = np.float32(line[3][1])
+            #print((a,b) , ' ', (c,d))
+            cv2.line(image, (a,b), (c,d), line_color, THICKNESS_LINE)
+            
             e = ((np.array(line[2])+np.array(line[3]))/2).astype(int)
             mesure_text = '{}m'.format(line[4])
             position_text = (e[0], e[1] - 5)
@@ -111,7 +130,6 @@ class CamProcessor:
             minimal_distance = 0
             breaking_secure_distance = 0
             average_distance = 0
-
         return {
             'amount_people': amount_people,
             'breaking_secure_distance': breaking_secure_distance,
@@ -120,17 +138,18 @@ class CamProcessor:
         }
 
     def inference(self, frame):
-        frame = cv2.resize(frame, (640, 360),
-            fx=0, fy=0, interpolation=cv2.INTER_LINEAR)
-
+        frame = cv2.resize(frame, (640, 480),
+            fx=0, fy=0, interpolation=cv2.INTER_AREA)
         boxes = self.net.make_boxes(frame)
-        distance_lines = self.distance_measure(boxes)
+        distance_lines = self.distance_measure(boxes, frame)
         shorter_distance_lines = self.get_min_distances(distance_lines)
-
+        # frame = self.net.draw_image(frame,boxes)
         statistical = self.calculate_statistical_results(boxes, shorter_distance_lines)
         if statistical['amount_people'] > 0:
             frame = self.draw_over_frame(frame, boxes, shorter_distance_lines)
-
+        
+        # frame = cv2.resize(frame, (416, 416),
+        #     fx=0, fy=0, interpolation=cv2.INTER_AREA)
         results = {
             'frame': frame,
             'graphical': {

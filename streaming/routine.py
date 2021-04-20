@@ -97,10 +97,12 @@ def processing_routine(channels):
                 continue
 
             logger.debug(f"Capturadas {results['statistical']['amount_people']} personas en {camera['channel'].name}")
-
-            redis_transmitter.send_frame(access_key, frame_to_jpg(results['frame']))
-            Record.objects.create(graphical=results['graphical'],
-                channel=camera['channel'], **results['statistical'])
+            try:
+                redis_transmitter.send_frame(access_key, frame_to_jpg(results['frame']))
+                Record.objects.create(graphical=results['graphical'],
+                    channel=camera['channel'], **results['statistical'])
+            except Exception as ex:
+                continue
 
         if not any([cam['active'] for cam in cameras.values()]):
             logger.info('No se pudo conectar a ninguna camara')
@@ -124,7 +126,7 @@ def main():
 
     if not channels_by_thread:
         logger.error(f'No hay canales habilitados disponibles para el servidor {server_name}.')
-        time.sleep(300)
+        time.sleep(30)
         return
 
     logger.info(f'Inicializando: Se procesaran {len(channels)} canales.')
@@ -134,7 +136,7 @@ def main():
             # executor.map(processing_routine, channels_by_thread.values())
             for channel_group in channels_by_thread.values():
                 executor.submit(processing_routine, channel_group)
-                time.sleep(5)
+                time.sleep(20)
 
     except KeyboardInterrupt:
         _quit = True
