@@ -136,7 +136,7 @@ def main():
             # executor.map(processing_routine, channels_by_thread.values())
             for channel_group in channels_by_thread.values():
                 executor.submit(processing_routine, channel_group)
-                time.sleep(20)
+                time.sleep(1)
 
     except KeyboardInterrupt:
         _quit = True
