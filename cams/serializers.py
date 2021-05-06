@@ -22,7 +22,7 @@ class ChannelSerializer(serializers.ModelSerializer):
     last_record = RecordSerializer(read_only=True)
 
     class Meta:
-        model = Channel
+        model = Channel 
         fields = ('id', 'name', 'state', 'enabled', 'process_id',
             'camera_interface', 'last_connection', 'image_stream', 'last_record',
             'longitude', 'latitude')

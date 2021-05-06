@@ -3,6 +3,8 @@ import threading, queue
 import datetime as dt
 import logging
 import time
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 import redis
 from redis.exceptions import TimeoutError
@@ -20,7 +22,6 @@ def frame_generator(camera):
         frame = camera.get_frame()
         yield(b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
-
 
 class Camera(ABC):
     def __del__(self):
@@ -101,7 +102,7 @@ class RedisCamera(Camera):
         return raw_frame
 
     def send_frame(self, key, frame):
-        successful_send = self.client.set(key, frame, ex=30)
+        successful_send = self.client.set(key, frame, ex=5)
 
         if not successful_send:
             message = f'No pudo enviar el fotogama por "{key}"' 

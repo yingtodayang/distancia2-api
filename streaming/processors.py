@@ -117,6 +117,7 @@ class CamProcessor:
             position_text = (e[0], e[1] - 5)
             cv2.putText(image, mesure_text, position_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, DARK_COLOR_TEXT, THICKNESS_LINE)
             cv2.putText(image, mesure_text, position_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, LIGHT_COLOR_TEXT, THICKNESS_LINE - 1)
+            
 
         return image
 
@@ -148,7 +149,11 @@ class CamProcessor:
         statistical = self.calculate_statistical_results(boxes, shorter_distance_lines)
         if statistical['amount_people'] > 0:
             frame = self.draw_over_frame(frame, boxes, shorter_distance_lines)
-        
+        width1, height1, c = frame.shape
+        cv2.putText(frame, 'personas: '+str(statistical['amount_people']), (0,width1-12), cv2.FONT_HERSHEY_SIMPLEX, 0.8, DARK_COLOR_TEXT,THICKNESS_LINE)
+        cv2.putText(frame, 'personas: '+str(statistical['amount_people']), (0,width1-12), cv2.FONT_HERSHEY_SIMPLEX, 0.8, LIGHT_COLOR_TEXT,THICKNESS_LINE - 1)
+        cv2.putText(frame, 'personas incumpliendo: '+str(statistical['breaking_secure_distance']), (height1-350,width1-12), cv2.FONT_HERSHEY_SIMPLEX, 0.8, DARK_COLOR_TEXT,THICKNESS_LINE)
+        cv2.putText(frame, 'personas incumpliendo: '+str(statistical['breaking_secure_distance']), (height1-350,width1-12), cv2.FONT_HERSHEY_SIMPLEX, 0.8, LIGHT_COLOR_TEXT,THICKNESS_LINE - 1)
         results = {
             'frame': frame,
             'graphical': {

@@ -82,6 +82,7 @@ def processing_routine(channels):
                 raw_frame = camera['interface'].get_frame()
                 logger.debug(f"{camera['channel'].name}: consulta exitosa.")
                 results = processor.inference(raw_frame)
+                
 
             except KeyboardInterrupt as err:
                 raise err

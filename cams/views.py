@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.views.decorators import gzip
 from rest_framework import viewsets
+#from rest_framework.decorators import api_view
 
 from cams import interfaces
 from cams.models import Channel, Record
@@ -23,7 +24,6 @@ def image_stream(request, channel_id):
     except Exception as err:
         print(err)
         raise Http404('No se ha iniciado el streaming')
-
 
 class ChannelViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Channel.objects.all()
